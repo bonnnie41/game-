@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
+  <title>게임 기획 프레젠테이션 v1.2</title>
+  <style>
+    :root{
+      --bg:#0a0a0a; --fg:#e0e0e0; --panel:rgba(20,20,20,.82); --border:#333;
+      --g1:#00ff88; --g2:#00ccff; --p:#ff0080; --c:#ffff00;
+      --vh: 1vh; /* JS에서 보정 */
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    html, body { height: 100%; }
+    body{
+      font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background:var(--bg);
+      background-image:
+        radial-gradient(circle at 20% 50%, #1a1a2e 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, #16213e 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, #0f3460 0%, transparent 50%);
+      color:var(--fg);
+      overflow:hidden; /* 바깥 스크롤 제거 */
+    }
+    .presentation-container{
+      width:100%;
+      height: 100dvh; /* 최신 브라우저 */
+      height: calc(var(--vh, 1vh) * 100); /* 폴백 */
+      min-height: calc(var(--vh, 1vh) * 100);
+      position:relative;
+      overflow:hidden;
+      padding:
+        max(env(safe-area-inset-top), 0px)
+        max(env(safe-area-inset-right), 0px)
+        max(env(safe-area-inset-bottom), 0px)
+        max(env(safe-area-inset-left), 0px);
+    }
+    .slide{width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2rem;position:absolute;inset:0;opacity:0;transform:translateX(100px);transition:all .6s ease}
+    .slide.main-slide{overflow-y:auto;}
+    .slide.active{opacity:1;transform:translateX(0)}
+    .slide h1{font-size:3.2rem;margin-bottom:1rem;background:linear-gradient(45deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:0 0 20px rgba(0,255,136,.3);font-weight:800}
+    .slide h2{font-size:2.4rem;margin-bottom:1.2rem;color:var(--p);text-shadow:0 0 20px rgba(255,0,128,.4);font-weight:700}
+    .slide h3{font-size:1.6rem;margin-bottom:1rem;color:var(--g2);text-shadow:0 0 15px rgba(0,255,255,.3)}
+    .slide p{font-size:1.1rem;line-height:1.6;margin-bottom:1rem;max-width:880px;color:var(--fg)}
+    .game-selection{display:flex;gap:2rem;flex-wrap:wrap;justify-content:center;margin-top:3rem}
+    .game-card{background:var(--panel);border:2px solid var(--border);border-radius:20px;padding:2.2rem;width:320px;cursor:pointer;transition:all .35s ease;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:.5rem}
+    .game-card:before{content:"";position:absolute;inset:0;background:linear-gradient(45deg,transparent,rgba(0,255,136,.12),transparent);opacity:0;transition:opacity .3s}
+    .game-card:hover:before{opacity:1}
+    .game-card:hover{transform:translateY(-15px) scale(1.05);border-color:var(--g1);box-shadow:0 20px 40px rgba(0,0,0,.5),0 0 30px rgba(0,255,136,.28)}
+    .game-card.tower:hover{border-color:var(--p);box-shadow:0 20px 40px rgba(0,0,0,.5),0 0 30px rgba(255,0,128,.28)}
+    .game-card.ocean:hover{border-color:var(--g2);box-shadow:0 20px 40px rgba(0,0,0,.5),0 0 30px rgba(0,204,255,.28)}
+    .game-card.cat:hover{border-color:var(--c);box-shadow:0 20px 40px rgba(0,0,0,.5),0 0 30px rgba(255,255,0,.28)}
+    .game-card[role="button"]{outline:none}
+    .game-card:focus-visible{border-color:var(--g2);box-shadow:0 0 0 3px rgba(0,204,255,.35)}
+    .game-icon{font-size:3.6rem;margin-bottom:1.1rem}
+    .game-title{color:var(--g1);font-size:1.6rem;font-weight:800;margin-bottom:.6rem}
+    .game-card.tower .game-title{color:var(--p)}
+    .game-card.ocean .game-title{color:var(--g2)}
+    .game-card.cat .game-title{color:var(--c)}
+    .game-detail{display:none;flex-direction:column;padding:2rem;max-width:1200px;width:100%;position:absolute;inset:0;justify-content:flex-start;align-items:center;text-align:center;opacity:0;transform:translateX(100px);transition:all .6s ease;overflow-y:auto;padding-top:4rem;padding-bottom:6rem}
+    .game-detail.active{display:flex;opacity:1;transform:translateX(0)}
+    .detail-header{text-align:center;margin-bottom:2rem}
+    .nav-buttons{display:flex;gap:1rem;margin:1rem 0 2rem}
+    .btn{border:none;padding:1rem 2rem;border-radius:50px;color:#0a0a0a;font-weight:800;font-size:1rem;cursor:pointer;transition:all .25s ease;text-transform:uppercase;letter-spacing:.5px}
+    .home-btn{background:linear-gradient(45deg,var(--g1),var(--g2))}
+    .home-btn:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,255,136,.4)}
+    .prev-btn,.next-btn{background:#1f2937;color:#e5e7eb;border:1px solid #334155}
+    .prev-btn:hover,.next-btn:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(31,41,55,.35)}
+
+    .slide-counter{position:fixed;top:calc(1rem + env(safe-area-inset-top));right:calc(1rem + env(safe-area-inset-right));background:rgba(20,20,20,.82);border:1px solid var(--g1);padding:.65rem 1rem;border-radius:25px;color:var(--g1);font-size:1rem;backdrop-filter:blur(10px);display:flex;gap:.6rem;align-items:center;z-index:1000}
+    .export-btn{background:#111827;color:#e5e7eb;border:1px solid #10b981;border-radius:999px;padding:.45rem .8rem;font-weight:700;cursor:pointer}
+    .export-btn:hover{filter:brightness(1.1)}
+    .back-icon{position:fixed;top:calc(1rem + env(safe-area-inset-top));left:calc(1rem + env(safe-area-inset-left));background:rgba(20,20,20,.82);border:1px solid var(--p);width:56px;height:56px;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer;transition:all .3s ease;backdrop-filter:blur(10px);font-size:1.2rem;color:var(--p);opacity:0;visibility:hidden;z-index:1000}
+    .back-icon:hover{transform:scale(1.1);box-shadow:0 0 20px rgba(255,0,128,.4);background:rgba(40,40,40,.86)}
+    .back-icon.active{opacity:1;visibility:visible}
+    .tower-theme h2,.tower-theme h3{color:var(--p)}
+    .ocean-theme h2,.ocean-theme h3{color:var(--g2)}
+    .cat-theme h2,.cat-theme h3{color:var(--c)}
+
+    /* ===== Lean editorial layouts ===== */
+    .lean .detail-header{margin-bottom:2rem}
+    .lean .content-grid{display:grid;grid-template-columns:260px 1fr;gap:2.5rem;align-items:start;width:100%;max-width:1100px;margin:0 auto}
+    .lean .toc{position:sticky;top:1rem;text-align:left}
+    .lean .toc .toc-title{font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:.5rem}
+    .lean .toc a{display:block;padding:.55rem .75rem;border-left:2px solid transparent;text-decoration:none;color:var(--fg);opacity:.8;transition:.2s;border-radius:6px}
+    .lean .toc a:hover{opacity:1;background:rgba(255,255,255,.04)}
+    .lean.tower-theme .toc a.active{color:var(--p);border-left-color:var(--p);opacity:1}
+    .lean.ocean-theme .toc a.active{color:var(--g2);border-left-color:var(--g2);opacity:1}
+    .lean.cat-theme .toc a.active{color:var(--c);border-left-color:var(--c);opacity:1}
+    .lean .sections{text-align:left}
+    .lean .section{padding-bottom:2rem;margin-bottom:2rem;border-bottom:1px dashed var(--border)}
+    .lean .section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+    .tower-theme .section h4{color:var(--p);margin-bottom:.75rem}
+    .ocean-theme .section h4{color:var(--g2);margin-bottom:.75rem}
+    .cat-theme .section h4{color:var(--c);margin-bottom:.75rem}
+    .lean .muted{opacity:.8;font-size:.95rem;margin:.5rem 0 0}
+    .lean .chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem}
+    .lean .chip{font-size:.9rem;padding:.35rem .7rem;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.02)}
+    .lean .clean-list{list-style:none;padding-left:0;margin:0}
+    .lean .clean-list li{position:relative;margin:.45rem 0;padding-left:1.2rem}
+    .lean .clean-list.check li::before{content:"✓";position:absolute;left:0;top:.05rem;opacity:.9}
+    .tower-theme .clean-list.check li::before{color:var(--p)}
+    .ocean-theme .clean-list.check li::before{color:var(--g2)}
+    .cat-theme .clean-list.check li::before{color:var(--c)}
+    .lean .timeline{position:relative;margin-top:.25rem}
+    .lean .timeline::before{content:"";position:absolute;left:10px;top:.2rem;bottom:0;width:2px;background:linear-gradient(currentColor,transparent);opacity:.45}
+    .lean .node{position:relative;padding-left:2.2rem;margin:1rem 0 1.25rem}
+    .lean .node::before{content:"";position:absolute;left:4px;top:.35rem;width:12px;height:12px;border-radius:50%;border:2px solid currentColor;background:#111}
+    @media (max-width: 900px){
+      .lean .content-grid{grid-template-columns:1fr}
+      .lean .toc{position:static;display:flex;gap:.5rem;margin-bottom:1rem;overflow-x:auto}
+      .lean .toc a{border-left:none;border-bottom:2px solid transparent;white-space:nowrap}
+      .lean.tower-theme .toc a.active{border-bottom-color:var(--p)}
+      .lean.ocean-theme .toc a.active{border-bottom-color:var(--g2)}
+      .lean.cat-theme .toc a.active{border-bottom-color:var(--c)}
+      .slide h1{font-size:2.1rem}
+      .slide h2{font-size:1.6rem}
+      .game-card{width:88vw;max-width:360px}
+    }
+
+    /* 인쇄용 */
+    @media print{
+      body{background:#fff;color:#000;overflow:visible}
+      .slide-counter,.back-icon,.main-slide{display:none !important}
+      .presentation-container{height:auto;min-height:auto}
+      .game-detail{position:static;transform:none;opacity:1}
+      .game-detail:not(.active){display:none !important}
+      .detail-section{break-inside:avoid}
+      a[href]:after{content:" (" attr(href) ")"}
+    }
+  </style>
+</head>
+<body>
+  <div class="presentation-container" aria-live="polite">
+    <div class="slide-counter" id="counter">
+      <span id="counterLabel">게임 선택</span>
+      <button class="export-btn" type="button" title="현재 화면을 PDF로 인쇄/저장" onclick="window.print()">PDF</button>
+    </div>
+    <button class="back-icon" id="backIcon" aria-label="메인으로" title="메인으로 (Esc)">←</button>
+
+    <!-- 메인 선택 -->
+    <section class="slide main-slide active" id="mainSlide" aria-label="게임 선택 화면">
+      <h1>🎮 Choose Your Game</h1>
+      <p>아래 게임 중 하나를 선택하면 상세 정보를 볼 수 있어요.</p>
+      <div class="game-selection">
+        <div class="game-card tower" data-game="tower" role="button" tabindex="0" aria-label="미친탑 상세 보기">
+          <div class="game-icon" aria-hidden="true">🏰</div>
+          <h3 class="game-title">미친탑</h3>
+          <p>Action Adventure RPG</p>
+        </div>
+        <div class="game-card ocean" data-game="ocean" role="button" tabindex="0" aria-label="나는 관광객이로소이다 상세 보기">
+          <div class="game-icon" aria-hidden="true">🌊</div>
+          <h3 class="game-title">나는 관광객이로소이다</h3>
+          <p>Healing Simulation</p>
+        </div>
+        <div class="game-card cat" data-game="cat" role="button" tabindex="0" aria-label="냥붕런 상세 보기">
+          <div class="game-icon" aria-hidden="true">🐱</div>
+          <h3 class="game-title">냥붕런</h3>
+          <p>Boss Runner</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 미친탑 -->
+    <section class="game-detail tower-theme lean" id="towerDetail" aria-label="미친탑 상세">
+      <div class="detail-header">
+        <h1>🏰 미친탑</h1>
+        <h2>사라진 여동생을 찾아 떠나는 모험</h2>
+      </div>
+      <div class="content-grid">
+        <nav class="toc" role="navigation" aria-label="미친탑 섹션 바로가기">
+          <div class="toc-title">Index</div>
+          <a href="#t-overview" class="active">개요</a>
+          <a href="#t-story">스토리</a>
+          <a href="#t-mechanics">메카닉</a>
+        </nav>
+        <div class="sections">
+          <section id="t-overview" class="section tower-sec" aria-label="개요">
+            <h4>🎮 게임 개요</h4>
+            <div class="chips" aria-hidden="true">
+              <span class="chip">액션 어드벤처</span>
+              <span class="chip">로그라이트</span>
+              <span class="chip">2D / 2.5D</span>
+              <span class="chip">보스전 선호 타깃</span>
+            </div>
+            <ul class="clean-list" style="margin-top:.6rem">
+              <li><strong>장르:</strong> 액션 어드벤처 / 로그라이트</li>
+              <li><strong>시점:</strong> 2D 사이드뷰 또는 2.5D</li>
+              <li><strong>타겟:</strong> 보스전을 좋아하는 유저</li>
+            </ul>
+          </section>
+          <section id="t-story" class="section tower-sec" aria-label="스토리라인">
+            <h4>📖 스토리라인</h4>
+            <p><strong>배경:</strong> 탑 아래 평지의 마을에 거주하는 주인공. 탑 꼭대기에는 '소원을 이뤄주는 보석'이 있다는 전설이 있으나, 수많은 모험가들이 도전했지만 아무도 돌아오지 못했다.</p>
+            <p><strong>주인공:</strong> 사라진 '지희'를 찾기 위해 탑에 도전하는 기사 <strong>'상지'</strong>. '지희'는 탑을 오르기 위해 홀로 들어갔다가 행방불명됨.</p>
+            <p class="muted">스토리 진행</p>
+            <div class="timeline">
+              <div class="node" id="t-s1"><h3>1-10층: 탑의 하층부</h3><p>약한 몬스터들과 기본 함정들</p></div>
+              <div class="node" id="t-s2"><h3>11-25층: 중층부</h3><p>층별 보스 등장 시작, '지희'의 흔적 발견</p></div>
+              <div class="node" id="t-s3"><h3>26-40층: 상층부</h3><p>강한 몬스터와 함정, '지희'의 일기장 발견</p></div>
+              <div class="node" id="t-s4"><h3>41-50층: 최상층</h3><p>탑의 진실 발견, 흑화한 '지희'와 조우</p></div>
+              <div class="node" id="t-s5"><h3>최종 보스</h3><p>'지희'</p></div>
+            </div>
+          </section>
+          <section id="t-mechanics" class="section tower-sec" aria-label="핵심 메카닉">
+            <h4>🎯 핵심 메카닉</h4>
+            <ul class="clean-list check">
+              <li>주인공 <strong>직업 선택</strong> 가능</li>
+              <li><strong>레벨별 진행:</strong> 각 층마다 클리어 조건 존재</li>
+              <li><strong>무기/스킬 업그레이드:</strong> 층을 오를수록 강력한 장비 획득</li>
+              <li><strong>체력/마나 관리:</strong> 제한된 자원으로 전략적 플레이</li>
+              <li><strong>비밀방:</strong> 숨겨진 방에서 특별한 보상 획득</li>
+            </ul>
+          </section>
+          <div class="nav-buttons" data-for="tower"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 나는 관광객이로소이다 -->
+    <section class="game-detail ocean-theme lean" id="oceanDetail" aria-label="나는 관광객이로소이다 상세">
+      <div class="detail-header">
+        <h1>🌊 나는 관광객이로소이다</h1>
+        <h2>공존을 설계하는 힐링 시뮬레이션</h2>
+      </div>
+      <div class="content-grid">
+        <nav class="toc" role="navigation" aria-label="나는 관광객이로소이다 섹션 바로가기">
+          <div class="toc-title">Index</div>
+          <a href="#o-prologue" class="active">프롤로그</a>
+          <a href="#o-chapters">진행(챕터식)</a>
+          <a href="#o-mechanics">핵심 메카닉</a>
+          <a href="#o-loop">코어 루프</a>
+          <a href="#o-characters">캐릭터 & 퀘스트</a>
+          <a href="#o-system">시스템 수치 예시</a>
+          <a href="#o-events">이벤트 카드</a>
+          <a href="#o-endings">엔딩 구조</a>
+          <a href="#o-extras">서브 요소(수정)</a>
+          <a href="#o-art">아트/톤 & 접근성</a>
+        </nav>
+        <div class="sections">
+          <section id="o-prologue" class="section">
+            <h4>프롤로그</h4>
+            <p>도시 과로로 번아웃된 지희가 바닷마을로 “1달 충전 여행”. 첫날 욕심내서 조개를 마구 캐다 현지 채취 규정 위반(수량/보호구역). 벌금은 면했지만, 커뮤니티 봉사 10시간을 제안받아 마을과 처음 연결된다. 지희는 봉사와 체험을 하며 관광 질서와 생태, 주민 생계의 미묘한 균형을 체감한다.</p>
+          </section>
+          <section id="o-chapters" class="section">
+            <h4>진행(챕터식)</h4>
+            <div class="timeline">
+              <div class="node"><h3>1. 첫 주 – 배우는 여행자</h3><p>채취 허가증·쿼터·물때 튜토리얼 / 첫 갈등: 사유지 드론 촬영 민원 → 사과+보상 선택지</p></div>
+              <div class="node"><h3>2. 1개월차 – 성수기의 파도</h3><p>SNS 바이럴로 관광객 급증 / 주차·소음·쓰레기 문제 → 임시 쓰레기통·유도 표지·가이드 투어</p></div>
+              <div class="node"><h3>3. 3개월차 – 자연의 경고</h3><p>적조/태풍 이벤트 → 무리한 체험 강행 vs 전면 중단 및 대체 체험 운영</p></div>
+              <div class="node"><h3>4. 6개월차 – 마을 총회(멀티 엔딩 트리거)</h3><p>주민 호감/관광 만족/생태 건강 3지표 기반 3~5개 엔딩 분기</p></div>
+            </div>
+          </section>
+          <section id="o-mechanics" class="section">
+            <h4>핵심 메카닉 (갈등을 ‘플레이’하게)</h4>
+            <ul class="clean-list check">
+              <li><strong>삼중 지표 시스템(R/T/E)</strong> — 주민 호감, 관광 만족, 생태 건강. 한쪽을 올리면 다른 쪽이 내려갈 수 있는 균형 퍼즐.</li>
+              <li><strong>규정 & 허가증</strong> — 일일 쿼터/보호구역/휴식일. 위반 시 벌금·평판 하락·봉사 퀘스트(하드 실패 대신 소프트 패널티).</li>
+              <li><strong>마을 총회 & 협상 미니게임</strong> — 요구안 등장, 대화 카드(공감/대안/보상/데이터)로 설득. 결과가 다음 주 지표에 반영.</li>
+              <li><strong>인프라 배치 & 운영</strong> — 표지판, 분리수거함, 임시 화장실, 가이드 투어 등. 유지비가 들지만 R/T/E 개선.</li>
+              <li><strong>경제 & 윤리 선택</strong> — ‘빠른 돈’ vs ‘느린 돈’. 선택이 즉시 R/T/E 그래프에 반영.</li>
+            </ul>
+          </section>
+          <section id="o-loop" class="section">
+            <h4>코어 루프</h4>
+            <p>아침(물때 확인·계획) → 낮(체험·운영·갈등) → 저녁(회의·정리/요리) → 주간(요약·의사결정·업그레이드)</p>
+            <ul class="clean-list">
+              <li><strong>일간:</strong> 배치/동선 미세 조정, 민원 즉시 대응 퀘스트</li>
+              <li><strong>주간:</strong> 총회, 조례 변경, 인프라/교육 캠페인 투자</li>
+              <li><strong>계절:</strong> 축제/기상 등 메타 변동</li>
+            </ul>
+          </section>
+          <section id="o-characters" class="section">
+            <h4>캐릭터 & 퀘스트 샘플</h4>
+            <ul class="clean-list">
+              <li>어촌계장 <strong>춘배</strong>: “휴식일 홍보판 설치” / 성공 시 R↑ E↑</li>
+              <li>게스트하우스 사장 <strong>미소</strong>: “야간 소음 민원 3건 이하” / 방음 패널 or 야간 버스킹 존</li>
+              <li>생태레인저 <strong>가을</strong>: “보호구역 드론 촬영 제로화” / 드론 표지+대체 포토스팟</li>
+              <li>초등학생 <strong>솔</strong>: “해변 청소 3회” / 아이 눈높이 교육 패널(힐링)</li>
+            </ul>
+          </section>
+          <section id="o-system" class="section">
+            <h4>시스템 수치 예시(초안)</h4>
+            <ul class="clean-list">
+              <li>R/T/E: −100 ~ +100 (기본 0)</li>
+              <li>하루 채집 쿼터 초과: E −10, R −5</li>
+              <li>가이드 투어(1회/일): T +6, R +2, 유지비 20G</li>
+              <li>임시 화장실: T +4/일, 유지비 5G/일</li>
+              <li>회의 설득 S등급: 해당 조례 페널티 −50%</li>
+            </ul>
+          </section>
+          <section id="o-events" class="section">
+            <h4>이벤트 카드(난이도 스파이크)</h4>
+            <ul class="clean-list">
+              <li><strong>SNS 대박:</strong> 관광객 +40% / 쓰레기 +30%</li>
+              <li><strong>적조 경보:</strong> 체험 중단 권고, 대체 활동 시 R/T 유지, E +10</li>
+              <li><strong>폭우:</strong> 시설 파손(유지비↑), 다음날 조개 출현률↑(리스크-리턴)</li>
+            </ul>
+          </section>
+          <section id="o-endings" class="section">
+            <h4>엔딩 구조(예시 4종)</h4>
+            <ul class="clean-list">
+              <li><strong>명예 주민:</strong> R≥70, E≥40 → 상설 중재자 역할로 정착</li>
+              <li><strong>지속 가능한 명소:</strong> T≥70, E≥50 → 가이드북 출간, 방문자 수 안정화</li>
+              <li><strong>각자의 바다:</strong> R/T 중 하나 高, E&lt;0 → 선택을 인정하고 이별</li>
+              <li><strong>복기 여행자:</strong> 균형 실패 → 도시로 복귀, “공존 체크리스트” 남김(뉴게임+)</li>
+            </ul>
+          </section>
+          <section id="o-extras" class="section">
+            <h4>서브 요소 정리(기존 대비 수정)</h4>
+            <ul class="clean-list">
+              <li><strong>환경 보호:</strong> 청소=E↑, 교육=R↑, 포토스팟=T↑처럼 지표 직결형 설계</li>
+              <li><strong>전설의 해산물:</strong> ‘채집’이 아닌 ‘목격’ 기록형 컬렉션(보호 문화 존중, E 손상 없음)</li>
+              <li><strong>요리:</strong> 버프+커뮤니티 기부 메뉴로 R/T 영향(예: 청소 인원 무료 제공)</li>
+            </ul>
+          </section>
+          <section id="o-art" class="section">
+            <h4>아트/톤 & 접근성</h4>
+            <ul class="clean-list">
+              <li>따뜻한 도트 + 사인보드형 UI(규정·동선 가독)</li>
+              <li>하드 실패 금지: 페널티는 시간/유지비/봉사로 상쇄 가능한 코지 설계</li>
+              <li>데이터 패널: 하루가 끝나면 R/T/E 변화 원인을 간단 표기로 학습 지원</li>
+            </ul>
+            <p class="muted">※ 이 구성은 “관광객-토착민-생태”의 이해관계 갈등을 메인 플레이로 만드는 목적.</p>
+          </section>
+          <div class="nav-buttons" data-for="ocean"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 냥붕런 -->
+    <section class="game-detail cat-theme lean" id="catDetail" aria-label="냥붕런 상세">
+      <div class="detail-header">
+        <h1>🐱 냥붕런</h1>
+        <h2>달리면서 보스를 이기는 ‘보스 러너’</h2>
+      </div>
+      <div class="content-grid">
+        <nav class="toc" role="navigation" aria-label="냥붕런 섹션 바로가기">
+          <div class="toc-title">Index</div>
+          <a href="#c-overview" class="active">게임 개요</a>
+          <a href="#c-corefantasy">핵심 판타지</a>
+          <a href="#c-loop">코어 루프</a>
+          <a href="#c-chapters">진행(액트/바이옴)</a>
+          <a href="#c-boss">보스 디자인</a>
+          <a href="#c-mechanics">핵심 메카닉</a>
+          <a href="#c-systems">시스템/수치</a>
+          <a href="#c-progression">빌드/메타</a>
+          <a href="#c-access">접근성/UX</a>
+        </nav>
+        <div class="sections">
+          <section id="c-overview" class="section">
+            <h4>🎮 게임 개요</h4>
+            <div class="chips" aria-hidden="true">
+              <span class="chip">보스 러너</span>
+              <span class="chip">2D 사이드뷰</span>
+              <span class="chip">모바일/PC</span>
+              <span class="chip">세션 6~8분</span>
+            </div>
+            <ul class="clean-list" style="margin-top:.6rem">
+              <li><strong>정체성:</strong> 엔드리스 러너의 몰입 + 보스러시의 패턴 공략을 결합</li>
+              <li><strong>타깃:</strong> 러너 조작의 간편함으로 보스전의 짜릿함을 즐기려는 전연령</li>
+              <li><strong>서사:</strong> 래트 킹에게 빼앗긴 먹거리를 되찾기 위한 고양이의 추격</li>
+            </ul>
+          </section>
+          <section id="c-corefantasy" class="section">
+            <h4>🪄 핵심 판타지</h4>
+            <p><strong>“멈추지 않는 보스전.”</strong> 달리면서 점프/슬라이드/대시-패링으로 보스의 텔레그래핑을 읽고, 타이밍 창을 파고들어 ‘러너식 콤보’로 제압한다.</p>
+          </section>
+          <section id="c-loop" class="section">
+            <h4>🔁 코어 루프</h4>
+            <p>달리기(장애물 대응) → 미니전투(추격/조우) → <strong>보스 페이즈</strong>(패턴 파훼·부위 파괴) → 전리품/업그레이드 → 다음 바이옴</p>
+            <ul class="clean-list">
+              <li><strong>런 길이:</strong> 6~8분(모바일 세션 최적화)</li>
+              <li><strong>체크포인트:</strong> 보스 페이즈 돌입 시점 자동 저장(소프트 실패 설계)</li>
+            </ul>
+          </section>
+          <section id="c-chapters" class="section">
+            <h4>📖 진행(액트/바이옴)</h4>
+            <div class="timeline">
+              <div class="node"><h3>Act 1 — 마을 외곽</h3><p>톱날 카트/함정 설치 구간. 보스 전초전(추격형).</p></div>
+              <div class="node"><h3>Act 2 — 숲속 길</h3><p>벌집/덩굴 스윙, 수직 플랫폼. 에어 점프 요구치 증가.</p></div>
+              <div class="node"><h3>Act 3 — 강변 도로</h3><p>미끄럼·물기둥·부유 발판. 타이밍 러시 구간.</p></div>
+              <div class="node"><h3>Act 4 — 산악 지대</h3><p>낙석·벽타기 연계. 스태미나 관리 압박.</p></div>
+              <div class="node"><h3>Final — 래트 킹의 성</h3><p>기계 함정/콘베이어/레이저. 다단 페이즈 보스.</p></div>
+            </div>
+          </section>
+          <section id="c-boss" class="section">
+            <h4>👑 보스 디자인(요약)</h4>
+            <ul class="clean-list">
+              <li><strong>톱니감독관(Act1)</strong> — <em>패턴:</em> 톱니 드랍→지상 돌진→점프 톱날. <em>파훼:</em> 슬라이드 저공·점프 타이밍.</li>
+              <li><strong>허니 퀸(Act2)</strong> — <em>패턴:</em> 벌침 탄막·끈끈이 바닥. <em>파훼:</em> 대시-패링으로 탄 제거, 공중 플랫폼 이동.</li>
+              <li><strong>리버 서펀트(Act3)</strong> — <em>패턴:</em> 파도 벽·꼬리 휩쓸기. <em>파훼:</em> 2단 점프+벽차기로 상단 루트.</li>
+              <li><strong>바위 골렘(Act4)</strong> — <em>패턴:</em> 낙석 예고→직선 레이저. <em>파훼:</em> 벽타기 구간에서 ‘휴식 포켓’ 확보.</li>
+              <li><strong>래트 킹(Final)</strong> — <em>패턴:</em> 기계팔 그랩·쥐떼 웨이브·장판 레이저. <em>파훼:</em> 패턴 합성(점프/슬라이드/패링) 종합시험.</li>
+            </ul>
+            <p class="muted">※ 모든 보스는 <strong>텔레그래핑</strong>(예고 사운드·아이콘)과 <strong>리듬 윈도우</strong>(0.35~0.5s)를 갖고, 성공 시 ‘러너 콤보’가 누적됩니다.</p>
+          </section>
+          <section id="c-mechanics" class="section">
+            <h4>🎯 핵심 메카닉</h4>
+            <ul class="clean-list check">
+              <li><strong>이동 4종:</strong> 점프/더블점프, 슬라이드, 벽타기, 대시-패링(i-프레임 짧음)</li>
+              <li><strong>콤보 게이지(용기):</strong> 연속 파훼 시 상승, 가득 차면 ‘포효(일시 무적+강공)’ 발동</li>
+              <li><strong>부위 파괴:</strong> 보스 장치(톱날, 장갑 등) 파괴 시 패턴 약화 & 보상 드랍</li>
+              <li><strong>템포 레인:</strong> 구간별 속도대(느림/보통/빠름)로 난이도 곡선 제어</li>
+              <li><strong>붕어빵 버프:</strong> 일시 체력 회복·속도 상승·패링 창 확대(랜덤 1개)</li>
+            </ul>
+          </section>
+          <section id="c-systems" class="section">
+            <h4>📊 시스템/수치(초안)</h4>
+            <ul class="clean-list">
+              <li><strong>런 기본 체력:</strong> 3히트(옵션으로 4~5 확장)</li>
+              <li><strong>대시-패링 창:</strong> 0.18s(업그레이드로 최대 0.26s)</li>
+              <li><strong>보스 페이즈:</strong> 3페이즈(HP 40/35/25%), 각 페이즈 신규 패턴 1개씩 추가</li>
+              <li><strong>세션 목표:</strong> 6~8분/런, 1일 3런 평균(모바일 기준)</li>
+            </ul>
+          </section>
+          <section id="c-progression" class="section">
+            <h4>🧩 빌드/메타(러너식 로드아웃)</h4>
+            <ul class="clean-list">
+              <li><strong>부츠:</strong> 대시 회복 가속 / 점프 상승량</li>
+              <li><strong>꼬리 장신구:</strong> 콤보 유지시간↑ / 패링 성공 시 붕어빵 드랍</li>
+              <li><strong>수염 센서:</strong> 텔레그래프 조기 경고(아이콘·진동)</li>
+              <li><strong>간식:</strong> 1회 보호막 / 속도 버프</li>
+            </ul>
+            <p class="muted">언락은 업적·보스 격파 주화로 해금(유료 요소는 <strong>스킨만</strong>, 밸런스 불개입).</p>
+          </section>
+          <section id="c-access" class="section">
+            <h4>🛟 접근성/UX</h4>
+            <ul class="clean-list">
+              <li>원핸드 모드(점프/슬라이드/대시 자동 배치)</li>
+              <li>고대비 텔레그래프 아이콘 & 진동 큐</li>
+              <li>보스 연습실(패턴만 반복 학습)</li>
+            </ul>
+          </section>
+          <div class="nav-buttons" data-for="cat"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // --- 뷰포트 높이 보정 (모바일 주소창 대비) ---
+    function setVh(){
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', vh + 'px');
+    }
+    setVh();
+    window.addEventListener('resize', setVh);
+    window.addEventListener('orientationchange', setVh);
+
+    // --- 데이터/유틸 ---
+    const order = ["tower","ocean","cat"];
+    const names = { tower: "미친탑", ocean: "나는 관광객이로소이다", cat: "냥붕런" };
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    function setCounter(text){
+      $('#counterLabel').textContent = text;
+      document.title = text + " · 게임 기획 프레젠테이션 v1.2";
+    }
+    function hideAll(){
+      $$('.slide').forEach(s => s.classList.remove('active'));
+      $$('.game-detail').forEach(d => d.classList.remove('active'));
+    }
+    function applyBackButton(show){
+      const backIcon = $('#backIcon');
+      backIcon.classList.toggle('active', !!show);
+      backIcon.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+    function renderNav(game){
+      const idx = order.indexOf(game);
+      const prev = order[(idx - 1 + order.length) % order.length];
+      const next = order[(idx + 1) % order.length];
+      const container = document.querySelector('.nav-buttons[data-for="'+game+'"]');
+      if(!container) return;
+      container.innerHTML = `
+        <button class="btn prev-btn" type="button" aria-label="이전(${names[prev]})">← 이전</button>
+        <button class="btn home-btn" type="button" aria-label="메인으로">MAIN</button>
+        <button class="btn next-btn" type="button" aria-label="다음(${names[next]})">다음 →</button>
+      `;
+      container.querySelector('.prev-btn').addEventListener('click', () => location.hash = prev);
+      container.querySelector('.home-btn').addEventListener('click', () => location.hash = '');
+      container.querySelector('.next-btn').addEventListener('click', () => location.hash = next);
+    }
+    function showDetail(game){
+      hideAll();
+      const el = document.getElementById(game + 'Detail');
+      if(!el) return;
+      setTimeout(() => el.classList.add('active'), 10);
+      applyBackButton(true);
+      setCounter(names[game]);
+      renderNav(game);
+      setupTOC(el);
+    }
+    function showMain(){
+      hideAll();
+      setTimeout(() => $('#mainSlide').classList.add('active'), 10);
+      applyBackButton(false);
+      setCounter('게임 선택');
+    }
+
+    // --- 라우팅 ---
+    function navigateFromHash(){
+      const hash = decodeURIComponent(location.hash.replace('#',''));
+      if(order.includes(hash)){ showDetail(hash); } else { showMain(); }
+    }
+    window.addEventListener('hashchange', navigateFromHash);
+
+    // 카드/키보드
+    $('#backIcon').addEventListener('click', () => location.hash = '');
+    $$('.game-card').forEach(card => {
+      const game = card.dataset.game;
+      card.addEventListener('click', () => location.hash = game);
+      card.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); location.hash = game; }
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      const hash = location.hash.replace('#','');
+      if(e.key === 'Escape'){ location.hash = ''; }
+      if(order.includes(hash)){
+        const idx = order.indexOf(hash);
+        if(e.key === 'ArrowLeft') location.hash = order[(idx - 1 + order.length) % order.length];
+        if(e.key === 'ArrowRight') location.hash = order[(idx + 1) % order.length];
+      }
+    });
+
+    // --- 공통 TOC 스크롤/하이라이트 ---
+    function setupTOC(root){
+      const links = Array.from(root.querySelectorAll('.toc a'));
+      if(!links.length) return;
+      const map = new Map(links.map(a => [a.getAttribute('href').replace('#',''), a]));
+      links.forEach(a => a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const id = a.getAttribute('href').replace('#','');
+        const target = root.querySelector('#' + CSS.escape(id));
+        if(target){ root.scrollTo({ top: target.offsetTop - 16, behavior: 'smooth' }); }
+      }));
+      const secs = Array.from(root.querySelectorAll('.section'));
+      if(secs.length){
+        const io = new IntersectionObserver((entries) => {
+          const vis = entries.filter(en => en.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio)[0];
+          links.forEach(l => l.classList.remove('active'));
+          if(vis){ const lnk = map.get(vis.target.id); if(lnk) lnk.classList.add('active'); }
+        }, { root, threshold: 0.6 });
+        secs.forEach(s => io.observe(s));
+      }
+    }
+
+    // 초기 진입
+    document.addEventListener('DOMContentLoaded', navigateFromHash);
+    document.addEventListener('DOMContentLoaded', () => {
+      const hash = location.hash.replace('#','');
+      if(order.includes(hash)) setupTOC(document.getElementById(hash + 'Detail'));
+    });
+  </script>
+</body>
+</html>
